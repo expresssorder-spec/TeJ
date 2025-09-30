@@ -1,0 +1,5 @@
+{
+  "name": "Joud Express AI Voucher Assistant",
+  "description": "An AI-powered web application to help generate payment voucher data for Joud Express delivery drivers by processing unstructured delivery information using Gemini.",
+  "requestFramePermissions": []
+}
