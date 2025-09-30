@@ -2,7 +2,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 export const generateVoucherDataFromText = async (apiKey: string, text: string) => {
   if (!apiKey) {
-    throw new Error("API Key is required.");
+    throw new Error("الرجاء إدخال مفتاح Gemini API.");
   }
   const ai = new GoogleGenAI({ apiKey });
 
@@ -14,7 +14,7 @@ export const generateVoucherDataFromText = async (apiKey: string, text: string) 
     - A list of their successful delivery IDs or tracking numbers.
     - The total payment amount they are owed.
 
-    Please provide the output as a JSON array of objects, where each object represents one driver.
+    Please provide the output as a JSON array of objects, where each object represents one driver. The final output must be only the JSON array, with no extra text or markdown formatting.
 
     Input Text:
     "${text}"
@@ -55,19 +55,27 @@ export const generateVoucherDataFromText = async (apiKey: string, text: string) 
 
     const jsonString = response.text;
     if (!jsonString) {
-      throw new Error("API returned an empty response.");
+      throw new Error("لم يتمكن الذكاء الاصطناعي من إنشاء رد. قد يكون النص المدخل غير واضح.");
     }
     
-    return JSON.parse(jsonString);
+    try {
+        return JSON.parse(jsonString);
+    } catch (parseError) {
+        console.error("Failed to parse JSON response from API:", jsonString);
+        throw new Error("فشل الذكاء الاصطناعي في إنشاء رد بصيغة صحيحة. حاول مرة أخرى أو قم بتعديل النص المدخل.");
+    }
 
   } catch (error) {
     console.error("Error calling Gemini API:", error);
     if (error instanceof Error) {
-        if(error.message.includes('API key not valid')){
+        if (error.message.includes('API key not valid')) {
             throw new Error("مفتاح Gemini API غير صالح. الرجاء التحقق منه.");
         }
-        throw new Error(`An error occurred while processing: ${error.message}`);
+        if (error.message.toLowerCase().includes('network') || error.message.toLowerCase().includes('fetch')) {
+            throw new Error("حدث خطأ في الشبكة. الرجاء التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.");
+        }
+        throw new Error(`حدث خطأ أثناء معالجة طلبك. الرجاء المحاولة مرة أخرى لاحقاً.`);
     }
-    throw new Error("An unknown error occurred.");
+    throw new Error("حدث خطأ غير معروف.");
   }
 };

@@ -7,6 +7,7 @@ interface CredentialsFormProps {
 
 const CredentialsForm: React.FC<CredentialsFormProps> = ({ onApiKeyChange }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
 
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-lg border border-gray-700 shadow-lg">
@@ -21,12 +22,21 @@ const CredentialsForm: React.FC<CredentialsFormProps> = ({ onApiKeyChange }) => 
               <KeyIcon className="h-5 w-5 text-gray-400" />
             </div>
             <input
-              type="password"
+              type={showApiKey ? 'text' : 'password'}
               id="api-key"
               onChange={(e) => onApiKeyChange(e.target.value)}
               placeholder="دخل مفتاح Gemini API ديالك هنا"
               className="block w-full rounded-md border-0 bg-white/5 py-2 pr-10 pl-3 text-white ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm"
+              aria-label="Gemini API Key"
             />
+            <button
+                type="button"
+                className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-gray-200"
+                onClick={() => setShowApiKey(!showApiKey)}
+                aria-label={showApiKey ? "إخفاء مفتاح API" : "إظهار مفتاح API"}
+            >
+                {showApiKey ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+            </button>
           </div>
         </div>
 
@@ -70,6 +80,7 @@ const CredentialsForm: React.FC<CredentialsFormProps> = ({ onApiKeyChange }) => 
                 type="button"
                 className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-gray-200"
                 onClick={() => setShowPassword(!showPassword)}
+                 aria-label={showPassword ? "إخفاء كلمة السر" : "إظهار كلمة السر"}
             >
                 {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
             </button>
