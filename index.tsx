@@ -1,2 +1,462 @@
-// All application code has been moved into index.html to ensure
-// compatibility with GitHub Pages and create a single, portable file.
+import React, { useState } from 'react';
+import ReactDOM from 'react-dom/client';
+import { GoogleGenAI, Type } from "@google/genai";
+
+// ===================================================================================
+// TYPES
+// ===================================================================================
+interface VoucherData {
+  driverName: string;
+  totalAmount: number;
+  deliveryIds: string[];
+}
+
+
+// ===================================================================================
+// ICONS
+// ===================================================================================
+
+const KeyIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+  </svg>
+);
+
+const UserIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+  </svg>
+);
+
+const LockIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+  </svg>
+);
+
+const EyeIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.432 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const EyeOffIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
+  </svg>
+);
+
+const SparklesIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.553L16.5 21.75l-.398-1.197a3.375 3.375 0 00-2.456-2.456L12.5 17.25l1.197-.398a3.375 3.375 0 002.456-2.456L16.5 13.5l.398 1.197a3.375 3.375 0 002.456 2.456l1.197.398-1.197.398a3.375 3.375 0 00-2.456 2.456z" />
+  </svg>
+);
+
+const LogoIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.03 1.125 0 1.131.094 1.976 1.057 1.976 2.192V7.5M8.25 7.5h7.5m-7.5 6l-1.5-1.5m1.5 1.5l1.5-1.5m-1.5 1.5V18m3-3l1.5-1.5m-1.5 1.5l1.5 1.5m-1.5-1.5V18m3-3l-1.5-1.5m1.5 1.5l1.5-1.5m-1.5 1.5V18M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+  </svg>
+);
+
+const UserCircleIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const CashIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+);
+
+const ClipboardListIcon: React.FC<React.SVGProps<SVGSVGElement>> = (props) => (
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75c0-.231-.035-.454-.1-.664M6.75 7.5h10.5a2.25 2.25 0 012.25 2.25v7.5a2.25 2.25 0 01-2.25 2.25H6.75a2.25 2.25 0 01-2.25-2.25v-7.5a2.25 2.25 0 012.25-2.25z" />
+  </svg>
+);
+
+// ===================================================================================
+// GEMINI SERVICE
+// ===================================================================================
+
+const generateVoucherDataFromText = async (apiKey: string, text: string): Promise<VoucherData[]> => {
+  if (!apiKey) {
+    throw new Error("الرجاء إدخال مفتاح Gemini API.");
+  }
+  const ai = new GoogleGenAI({ apiKey });
+
+  const prompt = `
+    You are an intelligent assistant for a Moroccan delivery company. Your task is to process raw text containing delivery information and structure it into a clear JSON format for creating payment vouchers. The input text is in Moroccan Darija.
+
+    Analyze the following text and extract the information for each delivery driver:
+    - The driver's name.
+    - A list of their successful delivery IDs or tracking numbers.
+    - The total payment amount they are owed.
+
+    Please provide the output as a JSON array of objects, where each object represents one driver. The final output must be only the JSON array, with no extra text or markdown formatting.
+
+    Input Text:
+    "${text}"
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              driverName: {
+                type: Type.STRING,
+                description: "The name of the delivery driver.",
+              },
+              totalAmount: {
+                type: Type.NUMBER,
+                description: "The total payment amount for the driver.",
+              },
+              deliveryIds: {
+                type: Type.ARRAY,
+                description: "A list of tracking numbers or IDs for the successful deliveries.",
+                items: {
+                  type: Type.STRING,
+                },
+              },
+            },
+            required: ["driverName", "totalAmount", "deliveryIds"],
+          },
+        },
+      },
+    });
+
+    const jsonString = response.text;
+    if (!jsonString) {
+      throw new Error("لم يتمكن الذكاء الاصطناعي من إنشاء رد. قد يكون النص المدخل غير واضح.");
+    }
+    
+    try {
+        return JSON.parse(jsonString);
+    } catch (parseError) {
+        console.error("Failed to parse JSON response from API:", jsonString);
+        throw new Error("فشل الذكاء الاصطناعي في إنشاء رد بصيغة صحيحة. حاول مرة أخرى أو قم بتعديل النص المدخل.");
+    }
+
+  } catch (error) {
+    console.error("Error calling Gemini API:", error);
+    if (error instanceof Error) {
+        if (error.message.includes('API key not valid')) {
+            throw new Error("مفتاح Gemini API غير صالح. الرجاء التحقق منه.");
+        }
+        if (error.message.toLowerCase().includes('network') || error.message.toLowerCase().includes('fetch')) {
+            throw new Error("حدث خطأ في الشبكة. الرجاء التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.");
+        }
+        throw new Error(`حدث خطأ أثناء معالجة طلبك. الرجاء المحاولة مرة أخرى لاحقاً.`);
+    }
+    throw new Error("حدث خطأ غير معروف.");
+  }
+};
+
+
+// ===================================================================================
+// COMPONENTS
+// ===================================================================================
+
+interface CredentialsFormProps {
+  onApiKeyChange: (key: string) => void;
+}
+
+const CredentialsForm: React.FC<CredentialsFormProps> = ({ onApiKeyChange }) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-lg border border-gray-700 shadow-lg">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Gemini API Key */}
+        <div className="md:col-span-3">
+          <label htmlFor="api-key" className="block text-sm font-medium text-cyan-400 mb-2">
+            مفتاح Gemini API (مطلوب)
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+              <KeyIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type={showApiKey ? 'text' : 'password'}
+              id="api-key"
+              onChange={(e) => onApiKeyChange(e.target.value)}
+              placeholder="دخل مفتاح Gemini API ديالك هنا"
+              className="block w-full rounded-md border-0 bg-white/5 py-2 pr-10 pl-3 text-white ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm"
+              aria-label="Gemini API Key"
+            />
+            <button
+                type="button"
+                className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-gray-200"
+                onClick={() => setShowApiKey(!showApiKey)}
+                aria-label={showApiKey ? "إخفاء مفتاح API" : "إظهار مفتاح API"}
+            >
+                {showApiKey ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Delivery Company Credentials */}
+        <div className="md:col-span-3">
+            <h3 className="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">معلومات الدخول لشركة التوصيل (Admin.joud-express.com)</h3>
+        </div>
+
+        <div>
+          <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
+            الإيمايل / اسم المستخدم
+          </label>
+          <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+                <UserIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="email"
+              id="email"
+              placeholder="exemple@joud-express.com"
+              className="block w-full rounded-md border-0 bg-white/5 py-2 pr-10 pl-3 text-white ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
+            كلمة السر
+          </label>
+          <div className="relative">
+             <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                <LockIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              placeholder="••••••••"
+              className="block w-full rounded-md border-0 bg-white/5 py-2 pr-10 pl-3 text-white ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm"
+            />
+            <button
+                type="button"
+                className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-gray-200"
+                onClick={() => setShowPassword(!showPassword)}
+                 aria-label={showPassword ? "إخفاء كلمة السر" : "إظهار كلمة السر"}
+            >
+                {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+      </div>
+      <p className="mt-4 text-xs text-gray-500 text-center">
+        إخلاء مسؤولية: معلومات الدخول ديالك ماكاتسجلش وكاتستعمل غير كمرجع للذكاء الاصطناعي. هاد الأداة ماكادخلش للحساب ديالك أوتوماتيكيا.
+      </p>
+    </div>
+  );
+};
+
+
+interface VoucherGeneratorProps {
+  apiKey: string;
+  setVoucherData: React.Dispatch<React.SetStateAction<VoucherData[]>>;
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  setError: React.Dispatch<React.SetStateAction<string | null>>;
+}
+
+const VoucherGenerator: React.FC<VoucherGeneratorProps> = ({ apiKey, setVoucherData, setIsLoading, setError }) => {
+  const [text, setText] = useState('');
+
+  const handleGenerate = async () => {
+    if (!apiKey) {
+      setError("الرجاء إدخال مفتاح Gemini API أولاً.");
+      return;
+    }
+    if (!text.trim()) {
+      setError("الرجاء إدخال تفاصيل التوصيل.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setVoucherData([]);
+
+    try {
+      const data = await generateVoucherDataFromText(apiKey, text);
+      setVoucherData(data);
+    } catch (e: unknown) {
+      if (e instanceof Error) {
+        setError(e.message);
+      } else {
+        setError("An unknown error occurred");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-lg border border-gray-700 shadow-lg">
+      <h2 className="text-xl font-bold text-white mb-4">إنشاء قسائم الدفع</h2>
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        rows={8}
+        placeholder="دخل هنا تفاصيل التوصيل... مثلا:
+- محمد: 350 درهم، التوصيلات 1Z456, 1Z789
+- فاطمة: 500 درهم، التوصيلات 1Z123, 1Z457, 1Z990"
+        className="block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-white ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm transition-all duration-200"
+      />
+      <div className="mt-4 flex justify-end">
+        <button
+          onClick={handleGenerate}
+          className="inline-flex items-center gap-x-2 rounded-md bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-cyan-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          disabled={!apiKey || !text}
+        >
+          <SparklesIcon className="h-5 w-5" />
+          إنشاء القسائم بالذكاء الاصطناعي
+        </button>
+      </div>
+    </div>
+  );
+};
+
+
+interface ResultDisplayProps {
+  data: VoucherData[];
+  isLoading: boolean;
+  error: string | null;
+}
+
+const LoadingSpinner: React.FC = () => (
+    <div className="flex flex-col items-center justify-center p-8 text-center">
+        <svg className="animate-spin -ml-1 mr-3 h-10 w-10 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <p className="mt-4 text-lg font-semibold text-gray-300">...جاري الإنشاء</p>
+        <p className="text-gray-500">الذكاء الاصطناعي كايعالج الطلب ديالك...</p>
+    </div>
+);
+
+const ResultDisplay: React.FC<ResultDisplayProps> = ({ data, isLoading, error }) => {
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
+
+  if (error) {
+    return (
+      <div className="bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg text-center">
+        <p className="font-bold">حدث خطأ</p>
+        <p>{error}</p>
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div className="text-center py-10 px-4 border-2 border-dashed border-gray-700 rounded-lg">
+        <p className="text-gray-500">النتائج غادي تبان هنا من بعد الإنشاء.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+        <h2 className="text-2xl font-bold text-white mb-6 text-center">قسائم الدفع الجاهزة</h2>
+        <div className="space-y-4">
+        {data.map((voucher, index) => (
+            <div key={index} className="bg-gray-800 border border-gray-700 p-4 rounded-lg shadow-md transform hover:scale-[1.02] hover:border-cyan-500 transition-all duration-300">
+            <div className="flex items-center mb-3">
+                <UserCircleIcon className="h-6 w-6 text-cyan-400 ml-2" />
+                <h3 className="text-lg font-bold text-white">{voucher.driverName}</h3>
+            </div>
+            <div className="space-y-2">
+                <div className="flex items-center text-gray-300">
+                    <CashIcon className="h-5 w-5 text-green-400 ml-2" />
+                    <span className="font-semibold">المبلغ الإجمالي:</span>
+                    <span className="mr-2 font-mono">{voucher.totalAmount.toLocaleString('ar-MA', { style: 'currency', currency: 'MAD' })}</span>
+                </div>
+                <div className="flex items-start text-gray-300">
+                    <ClipboardListIcon className="h-5 w-5 text-yellow-400 ml-2 mt-1 flex-shrink-0" />
+                    <div>
+                        <span className="font-semibold">أرقام التوصيلات:</span>
+                        <ul className="list-inside list-disc mt-1 mr-4">
+                        {voucher.deliveryIds.map((id, idIndex) => (
+                            <li key={idIndex} className="text-sm font-mono text-gray-400">{id}</li>
+                        ))}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            </div>
+        ))}
+        </div>
+    </div>
+  );
+};
+
+
+// ===================================================================================
+// APP COMPONENT
+// ===================================================================================
+const App: React.FC = () => {
+  const [apiKey, setApiKey] = useState<string>('');
+  const [voucherData, setVoucherData] = useState<VoucherData[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-gray-200 flex flex-col items-center p-4 sm:p-6 lg:p-8">
+      <div className="w-full max-w-4xl mx-auto">
+        <header className="flex flex-col items-center text-center mb-8">
+          <LogoIcon className="h-16 w-16 text-cyan-400 mb-4" />
+          <h1 className="text-4xl font-bold text-white tracking-tight">مساعد Joud Express الذكي</h1>
+          <p className="mt-2 text-lg text-gray-400">
+            هاد الأداة كاتعاونك تعالج بيانات التوصيل باش تصايب بونات الخلاص لليڤرورات ديالك
+          </p>
+        </header>
+
+        <main className="space-y-8">
+          <CredentialsForm onApiKeyChange={setApiKey} />
+          <div className="border-t border-gray-700 my-8"></div>
+          <VoucherGenerator 
+            apiKey={apiKey} 
+            setVoucherData={setVoucherData} 
+            setIsLoading={setIsLoading}
+            setError={setError}
+          />
+          <ResultDisplay 
+            data={voucherData} 
+            isLoading={isLoading} 
+            error={error} 
+          />
+        </main>
+        
+        <footer className="text-center mt-12 text-gray-500 text-sm">
+            <p>تم التطوير بواسطة الذكاء الاصطناعي. جميع الحقوق محفوظة © 2024</p>
+        </footer>
+      </div>
+    </div>
+  );
+};
+
+
+// ===================================================================================
+// RENDER
+// ===================================================================================
+
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
+}
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
