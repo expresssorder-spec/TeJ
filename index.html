@@ -224,7 +224,11 @@ const App = () => {
 
     } catch (err) {
       console.error(err);
-      setError(`حدث خطأ: ${err.message}`);
+      if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED'))) {
+          setError('لقد تجاوزت الحد المسموح به من الطلبات المجانية. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.');
+      } else {
+          setError(`حدث خطأ: ${err.message}`);
+      }
     } finally {
       setLoading(false);
     }
