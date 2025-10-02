@@ -27,7 +27,7 @@
     <!-- Load and transpile the app code -->
     <script type="text/babel" data-presets="react">
 // Use React and other libraries from the global scope
-const { useState, StrictMode } = React;
+const { useState, useEffect, StrictMode } = React;
 const { GoogleGenAI, Type } = GoogleGenAIModule;
 
 // ===================================================================================
@@ -109,8 +109,11 @@ const ClipboardListIcon = (props) => (
 // GEMINI SERVICE
 // ===================================================================================
 
-const generateVoucherDataFromText = async (text) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const generateVoucherDataFromText = async (text, apiKey) => {
+  if (!apiKey) {
+    throw new Error("مفتاح Gemini API مطلوب.");
+  }
+  const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
     You are an intelligent assistant for a Moroccan delivery company. Your task is to process raw text containing delivery information and structure it into a clear JSON format for creating payment vouchers. The input text is in Moroccan Darija.
@@ -191,6 +194,46 @@ const generateVoucherDataFromText = async (text) => {
 // COMPONENTS
 // ===================================================================================
 
+const ApiKeyManager = ({ apiKey, setApiKey }) => {
+  const [showKey, setShowKey] = useState(false);
+
+  return (
+    <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-lg border border-gray-700 shadow-lg">
+      <h3 className="text-lg font-semibold text-white mb-3">
+        1. أدخل مفتاح Gemini API الخاص بك
+      </h3>
+      <div className="relative">
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+          <KeyIcon className="h-5 w-5 text-gray-400" />
+        </div>
+        <input
+          type={showKey ? 'text' : 'password'}
+          value={apiKey}
+          onChange={(e) => setApiKey(e.target.value)}
+          placeholder="أدخل مفتاح Gemini API هنا"
+          className={`block w-full rounded-md border-0 bg-white/5 py-2 pr-10 pl-10 text-white ring-1 ring-inset ${!apiKey ? 'ring-yellow-500' : 'ring-gray-600'} focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm transition-colors`}
+          aria-required="true"
+        />
+        <button
+          type="button"
+          className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-gray-200"
+          onClick={() => setShowKey(!showKey)}
+          aria-label={showKey ? "إخفاء المفتاح" : "إظهار المفتاح"}
+        >
+          {showKey ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+        </button>
+      </div>
+       <p className="mt-3 text-xs text-gray-500">
+        مفتاحك كايتخزن غير فالمتصفح ديالك. 
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
+          باش تاخد المفتاح ديالك، زور Google AI Studio.
+        </a>
+      </p>
+    </div>
+  );
+};
+
+
 const CredentialsForm = () => {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -252,10 +295,14 @@ const CredentialsForm = () => {
 };
 
 
-const VoucherGenerator = ({ setVoucherData, setIsLoading, setError }) => {
+const VoucherGenerator = ({ apiKey, setVoucherData, setIsLoading, setError }) => {
   const [text, setText] = useState('');
 
   const handleGenerate = async () => {
+    if (!apiKey.trim()) {
+      setError("الرجاء إدخال مفتاح Gemini API أولاً.");
+      return;
+    }
     if (!text.trim()) {
       setError("الرجاء إدخال تفاصيل التوصيل.");
       return;
@@ -266,7 +313,7 @@ const VoucherGenerator = ({ setVoucherData, setIsLoading, setError }) => {
     setVoucherData([]);
 
     try {
-      const data = await generateVoucherDataFromText(text);
+      const data = await generateVoucherDataFromText(text, apiKey);
       setVoucherData(data);
     } catch (e) {
       if (e instanceof Error) {
@@ -281,7 +328,7 @@ const VoucherGenerator = ({ setVoucherData, setIsLoading, setError }) => {
 
   return (
     <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-lg border border-gray-700 shadow-lg">
-      <h2 className="text-xl font-bold text-white mb-4">إنشاء قسائم الدفع</h2>
+      <h2 className="text-xl font-bold text-white mb-4">2. إنشاء قسائم الدفع</h2>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
@@ -295,7 +342,7 @@ const VoucherGenerator = ({ setVoucherData, setIsLoading, setError }) => {
         <button
           onClick={handleGenerate}
           className="inline-flex items-center gap-x-2 rounded-md bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-cyan-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          disabled={!text}
+          disabled={!text || !apiKey}
         >
           <SparklesIcon className="h-5 w-5" />
           إنشاء القسائم بالذكاء الاصطناعي
@@ -379,9 +426,22 @@ const ResultDisplay = ({ data, isLoading, error }) => {
 // APP COMPONENT
 // ===================================================================================
 const App = () => {
+  const [apiKey, setApiKey] = useState('');
   const [voucherData, setVoucherData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const savedKey = localStorage.getItem('geminiApiKey');
+    if (savedKey) {
+      setApiKey(savedKey);
+    }
+  }, []);
+
+  const handleSetApiKey = (key) => {
+    setApiKey(key);
+    localStorage.setItem('geminiApiKey', key);
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-200 flex flex-col items-center p-4 sm:p-6 lg:p-8">
@@ -395,13 +455,15 @@ const App = () => {
         </header>
 
         <main className="space-y-8">
-          <CredentialsForm />
+          <ApiKeyManager apiKey={apiKey} setApiKey={handleSetApiKey} />
           <div className="border-t border-gray-700 my-8"></div>
           <VoucherGenerator 
+            apiKey={apiKey}
             setVoucherData={setVoucherData} 
             setIsLoading={setIsLoading}
             setError={setError}
           />
+          <CredentialsForm />
           <ResultDisplay 
             data={voucherData} 
             isLoading={isLoading} 
