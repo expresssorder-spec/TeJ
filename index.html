@@ -3,199 +3,100 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>مساعد Joud Express الذكي</title>
+    <title>مكاين غير ارا برررع اميمي ومريشة</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       body {
         font-family: 'Cairo', sans-serif;
+      }
+      .loader-dots div {
+        animation-name: bounce;
+        animation-duration: 1.4s;
+        animation-iteration-count: infinite;
+        animation-fill-mode: both;
+      }
+      .loader-dots div:nth-child(2) { animation-delay: 0.2s; }
+      .loader-dots div:nth-child(3) { animation-delay: 0.4s; }
+      @keyframes bounce {
+        0%, 80%, 100% { transform: scale(0); }
+        40% { transform: scale(1.0); }
+      }
+      .placeholder-bg {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 2px dashed #4a5568;
+        border-radius: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        text-align: center;
+        aspect-ratio: 1/1;
+        transition: background-color 0.3s ease;
+      }
+      .placeholder-bg:hover {
+        background-color: rgba(255, 255, 255, 0.08);
       }
     </style>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     
-    <!-- Load Libraries as Globals -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     
-    <!-- 1. Load Google GenAI library using a reliable ES Module import and attach it to the window -->
     <script type="module">
       import * as GoogleGenAIModule from 'https://esm.sh/@google/genai@0.12.0';
       window.GoogleGenAIModule = GoogleGenAIModule;
     </script>
     
-    <!-- Load Babel for JSX transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
   <body class="bg-gray-900 text-gray-100">
     <div id="root"></div>
-    <!-- 2. Load and transpile the app code, which will now find the library on the window object -->
     <script type="text/babel" data-presets="react">
 // Use React from the global scope and Gemini from the window object
-const { useState, useEffect, StrictMode } = React;
-const { GoogleGenAI, Type } = window.GoogleGenAIModule;
-
-// ===================================================================================
-// TYPES
-// ===================================================================================
-interface VoucherData {
-  driverName: string;
-  totalAmount: number;
-  deliveryIds: string[];
-}
-
+const { useState, useEffect, useRef, useCallback } = React;
+const { GoogleGenAI, Modality } = window.GoogleGenAIModule || {};
 
 // ===================================================================================
 // ICONS
 // ===================================================================================
-
 const KeyIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
   </svg>
 );
-
-const UserIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-  </svg>
-);
-
-const LockIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-  </svg>
-);
-
 const EyeIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.432 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
   </svg>
 );
-
 const EyeOffIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
     <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.242 4.242L9.88 9.88" />
   </svg>
 );
-
-const SparklesIcon = (props) => (
+const UploadIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.553L16.5 21.75l-.398-1.197a3.375 3.375 0 00-2.456-2.456L12.5 17.25l1.197-.398a3.375 3.375 0 002.456-2.456L16.5 13.5l.398 1.197a3.375 3.375 0 002.456 2.456l1.197.398-1.197.398a3.375 3.375 0 00-2.456 2.456z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
   </svg>
 );
-
-const LogoIcon = (props) => (
+const WandSparklesIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.898 20.553L16.5 21.75l-.398-1.197a3.375 3.375 0 00-2.456-2.456L12.5 17.25l1.197-.398a3.375 3.375 0 002.456-2.456L16.5 13.5l.398 1.197a3.375 3.375 0 002.456 2.456l1.197.398-1.197.398a3.375 3.375 0 00-2.456 2.456z" />
+    </svg>
+);
+const DownloadIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+    </svg>
+);
+const PhotoIcon = (props) => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 7.5V6.108c0-1.135.845-2.098 1.976-2.192.373-.03.748-.03 1.125 0 1.131.094 1.976 1.057 1.976 2.192V7.5M8.25 7.5h7.5m-7.5 6l-1.5-1.5m1.5 1.5l1.5-1.5m-1.5 1.5V18m3-3l1.5-1.5m-1.5 1.5l1.5 1.5m-1.5-1.5V18m3-3l-1.5-1.5m1.5 1.5l1.5-1.5m-1.5 1.5V18M3 12a9 9 0 1118 0 9 9 0 01-18 0z" />
+    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
   </svg>
 );
-
-const UserCircleIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-
-const CashIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-);
-
-const ClipboardListIcon = (props) => (
-  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75c0-.231-.035-.454-.1-.664M6.75 7.5h10.5a2.25 2.25 0 012.25 2.25v7.5a2.25 2.25 0 01-2.25 2.25H6.75a2.25 2.25 0 01-2.25-2.25v-7.5a2.25 2.25 0 012.25-2.25z" />
-  </svg>
-);
-
-// ===================================================================================
-// GEMINI SERVICE
-// ===================================================================================
-
-const generateVoucherDataFromText = async (text, apiKey) => {
-  if (!apiKey) {
-    throw new Error("مفتاح Gemini API مطلوب.");
-  }
-  if (!GoogleGenAI) {
-    throw new Error("مكتبة Gemini API لم يتم تحميلها بشكل صحيح. الرجاء تحديث الصفحة.");
-  }
-  const ai = new GoogleGenAI({ apiKey });
-
-  const prompt = `
-    You are an intelligent assistant for a Moroccan delivery company. Your task is to process raw text containing delivery information and structure it into a clear JSON format for creating payment vouchers. The input text is in Moroccan Darija.
-
-    Analyze the following text and extract the information for each delivery driver:
-    - The driver's name.
-    - A list of their successful delivery IDs or tracking numbers.
-    - The total payment amount they are owed.
-
-    Please provide the output as a JSON array of objects, where each object represents one driver. The final output must be only the JSON array, with no extra text or markdown formatting.
-
-    Input Text:
-    "${text}"
-  `;
-
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              driverName: {
-                type: Type.STRING,
-                description: "The name of the delivery driver.",
-              },
-              totalAmount: {
-                type: Type.NUMBER,
-                description: "The total payment amount for the driver.",
-              },
-              deliveryIds: {
-                type: Type.ARRAY,
-                description: "A list of tracking numbers or IDs for the successful deliveries.",
-                items: {
-                  type: Type.STRING,
-                },
-              },
-            },
-            required: ["driverName", "totalAmount", "deliveryIds"],
-          },
-        },
-      },
-    });
-
-    const jsonString = response.text;
-    if (!jsonString) {
-      throw new Error("لم يتمكن الذكاء الاصطناعي من إنشاء رد. قد يكون النص المدخل غير واضح.");
-    }
-    
-    try {
-        return JSON.parse(jsonString);
-    } catch (parseError) {
-        console.error("Failed to parse JSON response from API:", jsonString);
-        throw new Error("فشل الذكاء الاصطناعي في إنشاء رد بصيغة صحيحة. حاول مرة أخرى أو قم بتعديل النص المدخل.");
-    }
-
-  } catch (error) {
-    console.error("Error calling Gemini API:", error);
-    if (error instanceof Error) {
-        if (error.message.includes('API key not valid')) {
-            throw new Error("مفتاح Gemini API غير صالح. الرجاء التحقق منه.");
-        }
-        if (error.message.toLowerCase().includes('network') || error.message.toLowerCase().includes('fetch')) {
-            throw new Error("حدث خطأ في الشبكة. الرجاء التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.");
-        }
-        throw new Error(`حدث خطأ أثناء معالجة طلبك: ${error.message}`);
-    }
-    throw new Error("حدث خطأ غير معروف.");
-  }
-};
 
 
 // ===================================================================================
@@ -204,305 +105,247 @@ const generateVoucherDataFromText = async (text, apiKey) => {
 
 const ApiKeyManager = ({ apiKey, setApiKey }) => {
   const [showKey, setShowKey] = useState(false);
-
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-lg border border-gray-700 shadow-lg">
-      <h3 className="text-lg font-semibold text-white mb-3">
-        1. أدخل مفتاح Gemini API الخاص بك
-      </h3>
+    <div className="bg-gray-800/50 backdrop-blur-sm p-4 rounded-lg border border-gray-700 shadow-lg">
+      <label htmlFor="api-key" className="block text-sm font-medium text-gray-300 mb-2">
+        مفتاح Gemini API الخاص بك
+      </label>
       <div className="relative">
         <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
           <KeyIcon className="h-5 w-5 text-gray-400" />
         </div>
         <input
+          id="api-key"
           type={showKey ? 'text' : 'password'}
           value={apiKey}
           onChange={(e) => setApiKey(e.target.value)}
           placeholder="أدخل مفتاح Gemini API هنا"
-          className={`block w-full rounded-md border-0 bg-white/5 py-2 pr-10 pl-10 text-white ring-1 ring-inset ${!apiKey ? 'ring-yellow-500' : 'ring-gray-600'} focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm transition-colors`}
-          aria-required="true"
+          className="block w-full rounded-md border-0 bg-white/5 py-2 pr-10 pl-10 text-white ring-1 ring-inset ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
         />
         <button
           type="button"
-          className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-gray-200"
           onClick={() => setShowKey(!showKey)}
-          aria-label={showKey ? "إخفاء المفتاح" : "إظهار المفتاح"}
+          className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-gray-200"
+          aria-label={showKey ? 'إخفاء المفتاح' : 'إظهار المفتاح'}
         >
           {showKey ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
         </button>
       </div>
-       <p className="mt-3 text-xs text-gray-500">
-        مفتاحك كايتخزن غير فالمتصفح ديالك. 
-        <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:underline">
-          باش تاخد المفتاح ديالك، زور Google AI Studio.
-        </a>
-      </p>
     </div>
   );
 };
 
+const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = error => reject(error);
+});
 
-const CredentialsForm = () => {
-  const [showPassword, setShowPassword] = useState(false);
-
-  return (
-    <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-lg border border-gray-700 shadow-lg">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Delivery Company Credentials */}
-        <div className="md:col-span-3">
-            <h3 className="text-lg font-semibold text-white mb-3 border-b border-gray-700 pb-2">معلومات الدخول لشركة التوصيل (Admin.joud-express.com)</h3>
-        </div>
-
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
-            الإيمايل / اسم المستخدم
-          </label>
-          <div className="relative">
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                <UserIcon className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type="email"
-              id="email"
-              placeholder="exemple@joud-express.com"
-              className="block w-full rounded-md border-0 bg-white/5 py-2 pr-10 pl-3 text-white ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
-            كلمة السر
-          </label>
-          <div className="relative">
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3">
-                <LockIcon className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              id="password"
-              placeholder="••••••••"
-              className="block w-full rounded-md border-0 bg-white/5 py-2 pr-10 pl-3 text-white ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm"
-            />
-            <button
-                type="button"
-                className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-gray-200"
-                onClick={() => setShowPassword(!showPassword)}
-                aria-label={showPassword ? "إخفاء كلمة السر" : "إظهار كلمة السر"}
-            >
-                {showPassword ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-            </button>
-          </div>
-        </div>
-      </div>
-      <p className="mt-4 text-xs text-gray-500 text-center">
-        إخلاء مسؤولية: معلومات الدخول ديالك ماكاتسجلش وكاتستعمل غير كمرجع للذكاء الاصطناعي. هاد الأداة ماكادخلش للحساب ديالك أوتوماتيكيا.
-      </p>
-    </div>
-  );
-};
-
-
-const VoucherGenerator = ({ apiKey, setVoucherData, setIsLoading, setError }) => {
-  const [text, setText] = useState('');
-
-  const handleGenerate = async () => {
-    if (!apiKey.trim()) {
-      setError("الرجاء إدخال مفتاح Gemini API أولاً.");
-      return;
-    }
-    if (!text.trim()) {
-      setError("الرجاء إدخال تفاصيل التوصيل.");
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setVoucherData([]);
-
-    try {
-      const data = await generateVoucherDataFromText(text, apiKey);
-      setVoucherData(data);
-    } catch (e) {
-      if (e instanceof Error) {
-        setError(e.message);
-      } else {
-        setError("An unknown error occurred");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="bg-gray-800/50 backdrop-blur-sm p-6 rounded-lg border border-gray-700 shadow-lg">
-      <h2 className="text-xl font-bold text-white mb-4">2. إنشاء قسائم الدفع</h2>
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={8}
-        placeholder="دخل هنا تفاصيل التوصيل... مثلا:
-- محمد: 350 درهم، التوصيلات 1Z456, 1Z789
-- فاطمة: 500 درهم، التوصيلات 1Z123, 1Z457, 1Z990"
-        className="block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-white ring-1 ring-inset ring-gray-600 focus:ring-2 focus:ring-inset focus:ring-cyan-500 sm:text-sm transition-all duration-200"
-      />
-      <div className="mt-4 flex justify-end">
-        <button
-          onClick={handleGenerate}
-          className="inline-flex items-center gap-x-2 rounded-md bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-cyan-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          disabled={!text || !apiKey}
-        >
-          <SparklesIcon className="h-5 w-5" />
-          إنشاء القسائم بالذكاء الاصطناعي
-        </button>
-      </div>
-    </div>
-  );
-};
-
-
-const LoadingSpinner = () => (
-    <div className="flex flex-col items-center justify-center p-8 text-center">
-        <svg className="animate-spin -ml-1 mr-3 h-10 w-10 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
-        <p className="mt-4 text-lg font-semibold text-gray-300">...جاري الإنشاء</p>
-        <p className="text-gray-500">الذكاء الاصطناعي كايعالج الطلب ديالك...</p>
-    </div>
-);
-
-const ResultDisplay = ({ data, isLoading, error }) => {
-  if (isLoading) {
-    return <LoadingSpinner />;
-  }
-
-  if (error) {
-    return (
-      <div className="bg-red-900/50 border border-red-700 text-red-300 p-4 rounded-lg text-center">
-        <p className="font-bold">حدث خطأ</p>
-        <p>{error}</p>
-      </div>
-    );
-  }
-
-  if (data.length === 0) {
-    return (
-      <div className="text-center py-10 px-4 border-2 border-dashed border-gray-700 rounded-lg">
-        <p className="text-gray-500">النتائج غادي تبان هنا من بعد الإنشاء.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-        <h2 className="text-2xl font-bold text-white mb-6 text-center">قسائم الدفع الجاهزة</h2>
-        <div className="space-y-4">
-        {data.map((voucher, index) => (
-            <div key={index} className="bg-gray-800 border border-gray-700 p-4 rounded-lg shadow-md transform hover:scale-[1.02] hover:border-cyan-500 transition-all duration-300">
-            <div className="flex items-center mb-3">
-                <UserCircleIcon className="h-6 w-6 text-cyan-400 ml-2" />
-                <h3 className="text-lg font-bold text-white">{voucher.driverName}</h3>
-            </div>
-            <div className="space-y-2">
-                <div className="flex items-center text-gray-300">
-                    <CashIcon className="h-5 w-5 text-green-400 ml-2" />
-                    <span className="font-semibold">المبلغ الإجمالي:</span>
-                    <span className="mr-2 font-mono">{voucher.totalAmount.toLocaleString('ar-MA', { style: 'currency', currency: 'MAD' })}</span>
-                </div>
-                <div className="flex items-start text-gray-300">
-                    <ClipboardListIcon className="h-5 w-5 text-yellow-400 ml-2 mt-1 flex-shrink-0" />
-                    <div>
-                        <span className="font-semibold">أرقام التوصيلات:</span>
-                        <ul className="list-inside list-disc mt-1 mr-4">
-                        {voucher.deliveryIds.map((id, idIndex) => (
-                            <li key={idIndex} className="text-sm font-mono text-gray-400">{id}</li>
-                        ))}
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            </div>
-        ))}
-        </div>
-    </div>
-  );
-};
-
-
-// ===================================================================================
-// APP COMPONENT
-// ===================================================================================
 const App = () => {
   const [apiKey, setApiKey] = useState('');
-  const [voucherData, setVoucherData] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const savedKey = localStorage.getItem('geminiApiKey');
-    if (savedKey) {
-      setApiKey(savedKey);
+  const [prompt, setPrompt] = useState('');
+  const [originalImage, setOriginalImage] = useState(null); // {url, base64, mimeType}
+  const [generatedImage, setGeneratedImage] = useState(null); // dataURL
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
+  
+  const handleImageUpload = (file) => {
+    if (file && file.type.startsWith('image/')) {
+        const url = URL.createObjectURL(file);
+        fileToBase64(file).then(base64 => {
+            setOriginalImage({ url, base64, mimeType: file.type });
+        });
+        setError('');
+        setGeneratedImage(null);
+    } else {
+        setError('المرجو اختيار ملف صورة صالح.');
     }
-  }, []);
-
-  const handleSetApiKey = (key) => {
-    setApiKey(key);
-    localStorage.setItem('geminiApiKey', key);
+  };
+  
+  const handleFileChange = (e) => {
+    handleImageUpload(e.target.files[0]);
   };
 
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    handleImageUpload(e.dataTransfer.files[0]);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const triggerFileSelect = () => fileInputRef.current.click();
+
+  const handleGeneration = async () => {
+    if (!apiKey || !originalImage || !prompt) {
+      setError('المرجو إدخال مفتاح API، رفع صورة، وكتابة وصف للتعديل.');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setGeneratedImage(null);
+
+    try {
+      const ai = new GoogleGenAI({ apiKey });
+      const imagePart = {
+        inlineData: {
+          data: originalImage.base64,
+          mimeType: originalImage.mimeType,
+        },
+      };
+      const textPart = { text: prompt };
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image-preview',
+        contents: { parts: [imagePart, textPart] },
+        config: {
+          responseModalities: [Modality.IMAGE, Modality.TEXT],
+        },
+      });
+
+      let foundImage = false;
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          const mimeType = part.inlineData.mimeType || 'image/png';
+          const dataUrl = `data:${mimeType};base64,${part.inlineData.data}`;
+          setGeneratedImage(dataUrl);
+          foundImage = true;
+          break;
+        }
+      }
+      if (!foundImage) {
+        setError("لم يتمكن الذكاء الاصطناعي من إنشاء صورة. حاول مرة أخرى بوصف مختلف.");
+      }
+
+    } catch (err) {
+      console.error(err);
+      setError(`حدث خطأ: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isDisabled = !apiKey || !originalImage || !prompt || loading;
+
   return (
-    <div className="min-h-screen bg-gray-900 text-gray-200 flex flex-col items-center p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 md:p-8" onDrop={handleDrop} onDragOver={handleDragOver}>
       <div className="w-full max-w-4xl mx-auto">
-        <header className="flex flex-col items-center text-center mb-8">
-          <LogoIcon className="h-16 w-16 text-cyan-400 mb-4" />
-          <h1 className="text-4xl font-bold text-white tracking-tight">مساعد Joud Express الذكي</h1>
-          <p className="mt-2 text-lg text-gray-400">
-            هاد الأداة كاتعاونك تعالج بيانات التوصيل باش تصايب بونات الخلاص لليڤرورات ديالك
+        <header className="text-center mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-indigo-600 mb-2">
+            مكاين غير ارا برررع اميمي ومريشة
+          </h1>
+          <p className="text-lg text-gray-400">
+            في إطار قلة ميدار والملل الليلي
           </p>
         </header>
 
-        <main className="space-y-8">
-          <ApiKeyManager apiKey={apiKey} setApiKey={handleSetApiKey} />
-          <div className="border-t border-gray-700 my-8"></div>
-          <VoucherGenerator 
-            apiKey={apiKey}
-            setVoucherData={setVoucherData} 
-            setIsLoading={setIsLoading}
-            setError={setError}
-          />
-          <CredentialsForm />
-          <ResultDisplay 
-            data={voucherData} 
-            isLoading={isLoading} 
-            error={error} 
-          />
+        <main className="space-y-6">
+          <ApiKeyManager apiKey={apiKey} setApiKey={setApiKey} />
+
+          {error && (
+            <div className="bg-red-900/50 border border-red-700 text-red-200 px-4 py-3 rounded-lg" role="alert">
+              <span className="block sm:inline">{error}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Original Image */}
+            <div className="space-y-3">
+              <h2 className="text-xl font-semibold text-gray-300">1. الصورة الأصلية</h2>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                className="hidden"
+              />
+              <div onClick={triggerFileSelect} className="cursor-pointer">
+                {originalImage ? (
+                  <img src={originalImage.url} alt="Original" className="w-full h-auto object-cover rounded-lg shadow-lg border-2 border-gray-700" />
+                ) : (
+                  <div className="placeholder-bg">
+                    <UploadIcon className="w-12 h-12 text-gray-500 mb-2" />
+                    <p className="text-gray-400 font-semibold">اضغط هنا أو اسحب صورة</p>
+                    <p className="text-xs text-gray-500">PNG, JPG, WEBP, etc.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Generated Image */}
+            <div className="space-y-3">
+              <h2 className="text-xl font-semibold text-gray-300">النتيجة</h2>
+                {loading ? (
+                   <div className="placeholder-bg">
+                        <div className="loader-dots flex space-x-2">
+                          <div className="w-4 h-4 bg-indigo-400 rounded-full"></div>
+                          <div className="w-4 h-4 bg-indigo-400 rounded-full"></div>
+                          <div className="w-4 h-4 bg-indigo-400 rounded-full"></div>
+                        </div>
+                        <p className="text-gray-400 mt-4">الذكاء الاصطناعي يقوم بالتعديل...</p>
+                    </div>
+                ) : generatedImage ? (
+                    <div className="relative group">
+                        <img src={generatedImage} alt="Generated" className="w-full h-auto object-cover rounded-lg shadow-lg border-2 border-indigo-500" />
+                        <a 
+                            href={generatedImage} 
+                            download="edited-image.png" 
+                            className="absolute bottom-4 left-4 bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                            aria-label="تحميل الصورة"
+                        >
+                            <DownloadIcon className="w-6 h-6" />
+                        </a>
+                    </div>
+                ) : (
+                  <div className="placeholder-bg">
+                    <PhotoIcon className="w-12 h-12 text-gray-600" />
+                    <p className="text-gray-500">ستظهر الصورة المعدلة هنا</p>
+                  </div>
+                )}
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <label htmlFor="prompt" className="block text-xl font-semibold text-gray-300">2. اطلب تعديلك هنا</label>
+            <textarea
+              id="prompt"
+              rows="3"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="مثال: زيد ليه نظارات شمسية و خلفية ديال الشاطئ"
+              className="block w-full rounded-md border-0 bg-white/5 py-2 px-3 text-white ring-1 ring-inset ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+            />
+          </div>
+
+          <div>
+            <button
+              onClick={handleGeneration}
+              disabled={isDisabled}
+              className={`w-full flex items-center justify-center gap-x-2 rounded-md px-3.5 py-2.5 text-lg font-semibold shadow-sm transition-colors duration-200 ${isDisabled ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-indigo-600 text-white hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600'}`}
+            >
+              <WandSparklesIcon className="w-6 h-6"/>
+              <span>{loading ? '...جاري التعديل' : 'عدّل الصورة بالذكاء الاصطناعي'}</span>
+            </button>
+          </div>
         </main>
-        
-        <footer className="text-center mt-12 text-gray-500 text-sm">
-            <p>تم التطوير بواسطة الذكاء الاصطناعي. جميع الحقوق محفوظة © 2024</p>
-        </footer>
       </div>
     </div>
   );
 };
 
 
-// ===================================================================================
-// RENDER
-// ===================================================================================
-
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
-}
-
-const root = ReactDOM.createRoot(rootElement);
+const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <StrictMode>
+  <React.StrictMode>
     <App />
-  </StrictMode>
+  </React.StrictMode>
 );
+
     </script>
   </body>
 </html>
