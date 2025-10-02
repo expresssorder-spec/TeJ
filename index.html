@@ -17,18 +17,23 @@
     <!-- Load Libraries as Globals -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-    <script src="https://esm.sh/@google/genai@0.12.0?bundle&global-name=GoogleGenAIModule"></script>
+    
+    <!-- 1. Load Google GenAI library using a reliable ES Module import and attach it to the window -->
+    <script type="module">
+      import * as GoogleGenAIModule from 'https://esm.sh/@google/genai@0.12.0';
+      window.GoogleGenAIModule = GoogleGenAIModule;
+    </script>
     
     <!-- Load Babel for JSX transpilation -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 </head>
   <body class="bg-gray-900 text-gray-100">
     <div id="root"></div>
-    <!-- Load and transpile the app code -->
+    <!-- 2. Load and transpile the app code, which will now find the library on the window object -->
     <script type="text/babel" data-presets="react">
-// Use React and other libraries from the global scope
+// Use React from the global scope and Gemini from the window object
 const { useState, useEffect, StrictMode } = React;
-const { GoogleGenAI, Type } = GoogleGenAIModule;
+const { GoogleGenAI, Type } = window.GoogleGenAIModule;
 
 // ===================================================================================
 // TYPES
@@ -113,6 +118,9 @@ const generateVoucherDataFromText = async (text, apiKey) => {
   if (!apiKey) {
     throw new Error("مفتاح Gemini API مطلوب.");
   }
+  if (!GoogleGenAI) {
+    throw new Error("مكتبة Gemini API لم يتم تحميلها بشكل صحيح. الرجاء تحديث الصفحة.");
+  }
   const ai = new GoogleGenAI({ apiKey });
 
   const prompt = `
@@ -183,7 +191,7 @@ const generateVoucherDataFromText = async (text, apiKey) => {
         if (error.message.toLowerCase().includes('network') || error.message.toLowerCase().includes('fetch')) {
             throw new Error("حدث خطأ في الشبكة. الرجاء التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.");
         }
-        throw new Error(`حدث خطأ أثناء معالجة طلبك. الرجاء المحاولة مرة أخرى لاحقاً.`);
+        throw new Error(`حدث خطأ أثناء معالجة طلبك: ${error.message}`);
     }
     throw new Error("حدث خطأ غير معروف.");
   }
