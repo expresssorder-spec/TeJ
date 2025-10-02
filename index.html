@@ -27,7 +27,7 @@
 </head>
   <body class="bg-gray-900 text-gray-100">
     <div id="root"></div>
-    <script data-type="module" data-presets="react,typescript" type="text/babel">
+    <script id="app-source" type="text/tsx">
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom/client';
 import { GoogleGenAI, Type } from "@google/genai";
@@ -490,6 +490,26 @@ root.render(
     <App />
   </React.StrictMode>
 );
+    </script>
+    <script>
+      window.addEventListener('load', () => {
+        try {
+          const sourceCode = document.getElementById('app-source').textContent;
+          // Babel is loaded from the CDN and available as a global
+          const transformed = Babel.transform(sourceCode, {
+            presets: ["react", "typescript"],
+            filename: "app.tsx" // For better error messages
+          });
+          const scriptEl = document.createElement('script');
+          scriptEl.type = 'module';
+          scriptEl.textContent = transformed.code;
+          document.body.appendChild(scriptEl);
+        } catch (error) {
+          console.error("Failed to transpile or load the application:", error);
+          const errorHtml = `<div style="color: red; background-color: #111; padding: 20px; text-align: left; direction: ltr; font-family: monospace; border: 1px solid red; border-radius: 8px;"><h1>Application Error</h1><p>Could not start the application. See browser console for details.</p><pre style="white-space: pre-wrap; word-break: break-all;">${error.message.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</pre></div>`;
+          document.body.innerHTML = errorHtml;
+        }
+      });
     </script>
   </body>
 </html>
