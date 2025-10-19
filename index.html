@@ -752,15 +752,6 @@ const App = () => {
     const [promptForEditor, setPromptForEditor] = useState('');
     const [selectedExample, setSelectedExample] = useState(null);
 
-    const isApiKeySet = apiKey.trim() !== '';
-
-    useEffect(() => {
-        // If API key is removed, switch back to examples page
-        if (!isApiKeySet && page === 'editor') {
-            setPage('examples');
-        }
-    }, [isApiKeySet, page]);
-
     return (
         <div className="w-full max-w-7xl mx-auto">
             <nav className="p-4 flex justify-center items-center gap-6 border-b border-gray-800">
@@ -770,24 +761,22 @@ const App = () => {
                 >
                     أمثلة
                 </button>
-                {isApiKeySet && (
-                    <button 
-                        onClick={() => setPage('editor')} 
-                        className={`text-lg font-semibold pb-2 ${page === 'editor' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-gray-400 hover:text-white'}`}
-                    >
-                        المحرر
-                    </button>
-                )}
+                <button 
+                    onClick={() => setPage('editor')} 
+                    className={`text-lg font-semibold pb-2 ${page === 'editor' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-gray-400 hover:text-white'}`}
+                >
+                    المحرر
+                </button>
             </nav>
 
             <div className="p-4 md:p-8">
               <ApiKeyManager apiKey={apiKey} setApiKey={setApiKey} />
             </div>
 
-            {page === 'examples' && <ExamplesPage onSelectExample={setSelectedExample} isLocked={!isApiKeySet} />}
-            {isApiKeySet && page === 'editor' && <EditorPage apiKey={apiKey} prompt={promptForEditor} setPrompt={setPromptForEditor} />}
+            {page === 'examples' && <ExamplesPage onSelectExample={setSelectedExample} isLocked={false} />}
+            {page === 'editor' && <EditorPage apiKey={apiKey} prompt={promptForEditor} setPrompt={setPromptForEditor} />}
 
-            {isApiKeySet && selectedExample && <ImageEditModal apiKey={apiKey} example={selectedExample} onClose={() => setSelectedExample(null)} />}
+            {selectedExample && <ImageEditModal apiKey={apiKey} example={selectedExample} onClose={() => setSelectedExample(null)} />}
         </div>
     );
 }
