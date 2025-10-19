@@ -120,7 +120,11 @@ const XMarkIcon = (props) => (
         <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
 );
-
+const LightbulbIcon = (props) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 001.5-.189m-1.5.189a6.01 6.01 0 01-1.5-.189m3.75 7.478a12.06 12.06 0 01-4.5 0m3.75 2.311a11.999 11.999 0 01-2.25 0m1.5-2.311a6.012 6.012 0 011.5 0m-1.5 0a6.012 6.012 0 00-1.5 0m-3.75 7.478a12.057 12.057 0 004.5 0m-4.5 0a12.057 12.057 0 01-4.5 0m12.75 0a11.999 11.999 0 012.25 0m-1.5 2.311a6.012 6.012 0 001.5 0m-1.5 0a6.012 6.012 0 01-1.5 0m-3.75-7.478a11.999 11.999 0 00-2.25 0m1.5-2.311a6.01 6.01 0 00-1.5 0m9.75 5.25c0-3.447-2.686-6.25-6-6.25s-6 2.803-6 6.25c0 1.34.423 2.583 1.125 3.625m9.75 0c.702-1.042 1.125-2.285 1.125-3.625z" />
+    </svg>
+);
 
 // ===================================================================================
 // DATA
@@ -196,30 +200,46 @@ const downloadFilteredImage = (imageUrl, filterId) => {
 const ApiKeyManager = ({ apiKey, setApiKey }) => {
   const [showKey, setShowKey] = useState(false);
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm p-4 rounded-lg border border-gray-700 shadow-lg">
-      <label htmlFor="api-key" className="block text-sm font-medium text-gray-300 mb-2">
-        مفتاح Gemini API الخاص بك
-      </label>
-      <div className="relative">
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-          <KeyIcon className="h-5 w-5 text-gray-400" />
+    <div className="bg-gray-800/50 backdrop-blur-sm p-4 rounded-lg border border-gray-700 shadow-lg space-y-4">
+      {!apiKey && (
+        <div className="p-4 bg-blue-900/50 border border-blue-700 rounded-lg flex items-start gap-4">
+            <LightbulbIcon className="w-8 h-8 text-blue-400 flex-shrink-0 mt-1" />
+            <div>
+                <h3 className="font-bold text-blue-300">مفتاح API مطلوب لبدء التعديل</h3>
+                <p className="text-sm text-blue-300/80">
+                    باش تقدر تعدل الصور، خاصك مفتاح Gemini API. تقدر تاخد واحد فابور من Google AI Studio.
+                </p>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-white hover:underline mt-2 inline-block">
+                    خذ مفتاح من هنا &rarr;
+                </a>
+            </div>
         </div>
-        <input
-          id="api-key"
-          type={showKey ? 'text' : 'password'}
-          value={apiKey}
-          onChange={(e) => setApiKey(e.target.value)}
-          placeholder="أدخل مفتاح Gemini API هنا"
-          className="block w-full rounded-md border-0 bg-white/5 py-2 pr-10 pl-10 text-white ring-1 ring-inset ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
-        />
-        <button
-          type="button"
-          onClick={() => setShowKey(!showKey)}
-          className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-gray-200"
-          aria-label={showKey ? 'إخفاء المفتاح' : 'إظهار المفتاح'}
-        >
-          {showKey ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-        </button>
+      )}
+      <div>
+        <label htmlFor="api-key" className="block text-sm font-medium text-gray-300 mb-2">
+            مفتاح Gemini API الخاص بك
+        </label>
+        <div className="relative">
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
+            <KeyIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+            id="api-key"
+            type={showKey ? 'text' : 'password'}
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="أدخل مفتاح Gemini API هنا"
+            className="block w-full rounded-md border-0 bg-white/5 py-2 pr-10 pl-10 text-white ring-1 ring-inset ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+            />
+            <button
+            type="button"
+            onClick={() => setShowKey(!showKey)}
+            className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 hover:text-gray-200"
+            aria-label={showKey ? 'إخفاء المفتاح' : 'إظهار المفتاح'}
+            >
+            {showKey ? <EyeOffIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+            </button>
+        </div>
       </div>
     </div>
   );
@@ -343,7 +363,19 @@ const ImageEditModal = ({ apiKey, example, onClose }) => {
       }
     } catch (err) {
       console.error(err);
-      setError(`حدث خطأ: ${err.message}`);
+      const errorMessage = err.message || '';
+      if (errorMessage.toLowerCase().includes('api key not valid') || errorMessage.toLowerCase().includes('permission_denied')) {
+        setError('المفتاح ديال API لي دخلتي غالط أو ماخدامش. تأكد من أنك نسختيه مزيان من Google AI Studio.');
+      } else if (errorMessage.toLowerCase().includes('billing') || errorMessage.toLowerCase().includes('billing account')) {
+        setError('كيبان بلي الحساب ديالك ف Google Cloud مافيهش وسيلة دفع مفعلة. Gemini API كيحتاج تفعيل الفوترة (Billing) باش يخدم، واخا الاستعمال كيكون فابور فاللول.');
+      } else if (errorMessage.includes('429') || errorMessage.toUpperCase().includes('RESOURCE_EXHAUSTED')) {
+        setError('لقد تجاوزت الحد المسموح به من الطلبات المجانية. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.');
+      } else if (errorMessage.toLowerCase().includes('invalid argument')) {
+         setError('وقع مشكل فالصورة أو الوصف. جرب صورة أخرى أو بدّل الوصف.');
+      }
+      else {
+        setError('وقع شي خطأ ما معروفش. عاود حاول من بعد.');
+      }
     } finally {
       setLoading(false);
     }
@@ -434,7 +466,7 @@ const ImageEditModal = ({ apiKey, example, onClose }) => {
   )
 }
 
-const ExampleCard = ({ example, onSelect }) => {
+const ExampleCard = ({ example, onSelect, isLocked }) => {
     const [isCopied, setIsCopied] = useState(false);
 
     const handleCopy = (e) => {
@@ -444,8 +476,17 @@ const ExampleCard = ({ example, onSelect }) => {
         setTimeout(() => setIsCopied(false), 2000);
     };
 
+    const handleSelect = () => {
+        if (!isLocked) {
+            onSelect(example);
+        }
+    }
+
     return (
-        <div className="rounded-2xl overflow-hidden relative shadow-lg group transform hover:-translate-y-1 transition-transform duration-300 ease-in-out" onClick={() => onSelect(example)}>
+        <div 
+            className={`rounded-2xl overflow-hidden relative shadow-lg group transform hover:-translate-y-1 transition-transform duration-300 ease-in-out ${isLocked ? 'cursor-default' : 'cursor-pointer'}`}
+            onClick={handleSelect}
+        >
             <img src={example.imageUrl} alt={example.title} className="w-full h-full object-cover absolute inset-0" />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
             <div className="relative p-5 flex flex-col justify-end h-full text-white min-h-[300px] md:min-h-[400px]">
@@ -465,14 +506,16 @@ const ExampleCard = ({ example, onSelect }) => {
                     <span className="text-xs text-gray-400">by @{example.author}</span>
                 </div>
             </div>
-            <div className="absolute inset-0 bg-indigo-600/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer">
-                <span className="text-xl font-bold border-2 border-white px-6 py-3 rounded-full">جرب هذا</span>
-            </div>
+            {!isLocked && (
+                <div className="absolute inset-0 bg-indigo-600/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-xl font-bold border-2 border-white px-6 py-3 rounded-full">جرب هذا</span>
+                </div>
+            )}
         </div>
     );
 };
 
-const ExamplesPage = ({ onSelectExample }) => {
+const ExamplesPage = ({ onSelectExample, isLocked }) => {
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 6;
     const totalPages = Math.ceil(examples.length / itemsPerPage);
@@ -501,7 +544,7 @@ const ExamplesPage = ({ onSelectExample }) => {
                 </p>
             </header>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {paginatedExamples.map(ex => <ExampleCard key={ex.id} example={ex} onSelect={onSelectExample} />)}
+                {paginatedExamples.map(ex => <ExampleCard key={ex.id} example={ex} onSelect={onSelectExample} isLocked={isLocked}/>)}
             </div>
             <div className="flex justify-center items-center gap-4 mt-8">
                 <button
@@ -591,10 +634,18 @@ const EditorPage = ({ apiKey, prompt, setPrompt }) => {
 
     } catch (err) {
       console.error(err);
-      if (err.message && (err.message.includes('429') || err.message.includes('RESOURCE_EXHAUSTED'))) {
-          setError('لقد تجاوزت الحد المسموح به من الطلبات المجانية. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.');
-      } else {
-          setError(`حدث خطأ: ${err.message}`);
+      const errorMessage = err.message || '';
+      if (errorMessage.toLowerCase().includes('api key not valid') || errorMessage.toLowerCase().includes('permission_denied')) {
+        setError('المفتاح ديال API لي دخلتي غالط أو ماخدامش. تأكد من أنك نسختيه مزيان من Google AI Studio.');
+      } else if (errorMessage.toLowerCase().includes('billing') || errorMessage.toLowerCase().includes('billing account')) {
+        setError('كيبان بلي الحساب ديالك ف Google Cloud مافيهش وسيلة دفع مفعلة. Gemini API كيحتاج تفعيل الفوترة (Billing) باش يخدم، واخا الاستعمال كيكون فابور فاللول.');
+      } else if (errorMessage.includes('429') || errorMessage.toUpperCase().includes('RESOURCE_EXHAUSTED')) {
+        setError('لقد تجاوزت الحد المسموح به من الطلبات المجانية. يرجى الانتظار قليلاً ثم المحاولة مرة أخرى.');
+      } else if (errorMessage.toLowerCase().includes('invalid argument')) {
+         setError('وقع مشكل فالصورة أو الوصف. جرب صورة أخرى أو بدّل الوصف.');
+      }
+      else {
+        setError('وقع شي خطأ ما معروفش. عاود حاول من بعد.');
       }
     } finally {
       setLoading(false);
@@ -701,6 +752,15 @@ const App = () => {
     const [promptForEditor, setPromptForEditor] = useState('');
     const [selectedExample, setSelectedExample] = useState(null);
 
+    const isApiKeySet = apiKey.trim() !== '';
+
+    useEffect(() => {
+        // If API key is removed, switch back to examples page
+        if (!isApiKeySet && page === 'editor') {
+            setPage('examples');
+        }
+    }, [isApiKeySet, page]);
+
     return (
         <div className="w-full max-w-7xl mx-auto">
             <nav className="p-4 flex justify-center items-center gap-6 border-b border-gray-800">
@@ -710,22 +770,24 @@ const App = () => {
                 >
                     أمثلة
                 </button>
-                <button 
-                    onClick={() => setPage('editor')} 
-                    className={`text-lg font-semibold pb-2 ${page === 'editor' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-gray-400 hover:text-white'}`}
-                >
-                    المحرر
-                </button>
+                {isApiKeySet && (
+                    <button 
+                        onClick={() => setPage('editor')} 
+                        className={`text-lg font-semibold pb-2 ${page === 'editor' ? 'text-indigo-400 border-b-2 border-indigo-400' : 'text-gray-400 hover:text-white'}`}
+                    >
+                        المحرر
+                    </button>
+                )}
             </nav>
 
             <div className="p-4 md:p-8">
               <ApiKeyManager apiKey={apiKey} setApiKey={setApiKey} />
             </div>
 
-            {page === 'examples' && <ExamplesPage onSelectExample={setSelectedExample} />}
-            {page === 'editor' && <EditorPage apiKey={apiKey} prompt={promptForEditor} setPrompt={setPromptForEditor} />}
+            {page === 'examples' && <ExamplesPage onSelectExample={setSelectedExample} isLocked={!isApiKeySet} />}
+            {isApiKeySet && page === 'editor' && <EditorPage apiKey={apiKey} prompt={promptForEditor} setPrompt={setPromptForEditor} />}
 
-            {selectedExample && <ImageEditModal apiKey={apiKey} example={selectedExample} onClose={() => setSelectedExample(null)} />}
+            {isApiKeySet && selectedExample && <ImageEditModal apiKey={apiKey} example={selectedExample} onClose={() => setSelectedExample(null)} />}
         </div>
     );
 }
