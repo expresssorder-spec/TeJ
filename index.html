@@ -305,17 +305,16 @@ const FilterSelector = ({ activeFilter, onSelectFilter }) => (
 const ImageEditModal = ({ apiKey, example, onClose }) => {
   const [prompt, setPrompt] = useState(example.prompt);
   const [originalImage, setOriginalImage] = useState(null);
-  const [generatedImages, setGeneratedImages] = useState([]);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [generatedImage, setGeneratedImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeFilter, setActiveFilter] = useState('none');
 
   useEffect(() => {
-      if(generatedImages.length > 0) {
+      if(generatedImage) {
           setActiveFilter('none');
       }
-  }, [generatedImages]);
+  }, [generatedImage]);
 
   const handleImageUpload = (file) => {
     if (file && file.type.startsWith('image/')) {
@@ -324,8 +323,7 @@ const ImageEditModal = ({ apiKey, example, onClose }) => {
             setOriginalImage({ url, base64, mimeType: file.type });
         });
         setError('');
-        setGeneratedImages([]);
-        setSelectedImage(null);
+        setGeneratedImage(null);
     } else {
         setError('المرجو اختيار ملف صورة صالح.');
     }
@@ -338,8 +336,7 @@ const ImageEditModal = ({ apiKey, example, onClose }) => {
     }
     setLoading(true);
     setError('');
-    setGeneratedImages([]);
-    setSelectedImage(null);
+    setGeneratedImage(null);
 
     try {
       const ai = new GoogleGenAI({ apiKey });
@@ -347,34 +344,20 @@ const ImageEditModal = ({ apiKey, example, onClose }) => {
         inlineData: { data: originalImage.base64, mimeType: originalImage.mimeType },
       };
       const textPart = { text: prompt };
-      
-      const requestPayload = {
+
+      const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: { parts: [imagePart, textPart] },
         config: {
           responseModalities: [Modality.IMAGE],
         },
-      };
+      });
 
-      const promises = Array(4).fill(0).map(() => ai.models.generateContent(requestPayload));
-      const results = await Promise.allSettled(promises);
-      
-      const imageDataUrls = results
-        .filter(result => result.status === 'fulfilled')
-        .map(result => {
-            const response = result.value;
-            const part = response.candidates?.[0]?.content?.parts?.[0];
-            if (part && part.inlineData) {
-                const mimeType = part.inlineData.mimeType || 'image/png';
-                return `data:${mimeType};base64,${part.inlineData.data}`;
-            }
-            return null;
-        })
-        .filter(Boolean);
-
-      if (imageDataUrls.length > 0) {
-        setGeneratedImages(imageDataUrls);
-        setSelectedImage(imageDataUrls[0]);
+      const part = response.candidates?.[0]?.content?.parts?.[0];
+      if (part && part.inlineData) {
+        const mimeType = part.inlineData.mimeType || 'image/png';
+        const dataUrl = `data:${mimeType};base64,${part.inlineData.data}`;
+        setGeneratedImage(dataUrl);
       } else {
         setError("لم يتمكن الذكاء الاصطناعي من إنشاء صورة. حاول مرة أخرى بوصف مختلف.");
       }
@@ -427,7 +410,7 @@ const ImageEditModal = ({ apiKey, example, onClose }) => {
               </ImageUploader>
             </div>
             <div>
-              <h3 className="text-lg font-semibold mb-2">النتيجة <span className="text-sm text-gray-400 font-normal">(اختر الصورة لي عجباتك)</span></h3>
+              <h3 className="text-lg font-semibold mb-2">النتيجة</h3>
                {loading ? (
                    <div className="placeholder-bg aspect-square">
                         <div className="loader-dots flex space-x-2">
@@ -437,36 +420,20 @@ const ImageEditModal = ({ apiKey, example, onClose }) => {
                         </div>
                         <p className="text-gray-400 mt-4">...جاري التعديل</p>
                     </div>
-                ) : generatedImages.length > 0 ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-2 aspect-square">
-                        {generatedImages.map((imgUrl, index) => (
-                            <img 
-                                key={index} 
-                                src={imgUrl} 
-                                alt={`Generated image ${index + 1}`} 
-                                className={`w-full h-full object-cover rounded-lg cursor-pointer border-2 transition-all duration-200 ${selectedImage === imgUrl ? 'border-indigo-500' : 'border-gray-700 hover:border-gray-500'}`}
-                                onClick={() => setSelectedImage(imgUrl)}
-                            />
-                        ))}
-                      </div>
-                      {selectedImage && (
-                        <div className="p-3 bg-gray-900/50 rounded-lg border border-gray-700 space-y-3">
-                          <h4 className="text-md font-semibold text-center text-gray-300">معاينة وتعديل</h4>
-                          <div className="relative group">
-                            <img src={selectedImage} alt="Selected" className={`w-full h-auto object-contain rounded-lg shadow-lg transition-all duration-300 max-h-64 mx-auto filter-${activeFilter}`} />
-                             <button onClick={() => downloadFilteredImage(selectedImage, activeFilter)} className="absolute bottom-2 left-2 bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" aria-label="تحميل">
-                                  <DownloadIcon className="w-6 h-6" />
-                              </button>
-                          </div>
-                          <FilterSelector activeFilter={activeFilter} onSelectFilter={setActiveFilter} />
+                ) : generatedImage ? (
+                    <div>
+                        <div className="relative group aspect-square">
+                            <img src={generatedImage} alt="Generated" className={`w-full h-full object-cover rounded-lg shadow-lg border-2 border-indigo-500 transition-all duration-300 filter-${activeFilter}`} />
+                            <button onClick={() => downloadFilteredImage(generatedImage, activeFilter)} className="absolute bottom-4 left-4 bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" aria-label="تحميل">
+                                <DownloadIcon className="w-6 h-6" />
+                            </button>
                         </div>
-                      )}
+                         <FilterSelector activeFilter={activeFilter} onSelectFilter={setActiveFilter} />
                     </div>
                 ) : (
                   <div className="placeholder-bg aspect-square">
                     <PhotoIcon className="w-12 h-12 text-gray-600" />
-                    <p className="text-gray-500">ستظهر الصور المعدلة هنا</p>
+                    <p className="text-gray-500">ستظهر الصورة المعدلة هنا</p>
                   </div>
                 )}
             </div>
@@ -605,17 +572,16 @@ const ExamplesPage = ({ onSelectExample, isLocked }) => {
 
 const EditorPage = ({ apiKey, prompt, setPrompt }) => {
   const [originalImage, setOriginalImage] = useState(null); // {url, base64, mimeType}
-  const [generatedImages, setGeneratedImages] = useState([]); // dataURL array
-  const [selectedImage, setSelectedImage] = useState(null); // dataURL
+  const [generatedImage, setGeneratedImage] = useState(null); // dataURL
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [activeFilter, setActiveFilter] = useState('none');
 
   useEffect(() => {
-    if (generatedImages.length > 0) {
+    if (generatedImage) {
       setActiveFilter('none');
     }
-  }, [generatedImages]);
+  }, [generatedImage]);
   
   const handleImageUpload = (file) => {
     if (file && file.type.startsWith('image/')) {
@@ -624,8 +590,7 @@ const EditorPage = ({ apiKey, prompt, setPrompt }) => {
             setOriginalImage({ url, base64, mimeType: file.type });
         });
         setError('');
-        setGeneratedImages([]);
-        setSelectedImage(null);
+        setGeneratedImage(null);
     } else {
         setError('المرجو اختيار ملف صورة صالح.');
     }
@@ -638,8 +603,7 @@ const EditorPage = ({ apiKey, prompt, setPrompt }) => {
     }
     setLoading(true);
     setError('');
-    setGeneratedImages([]);
-    setSelectedImage(null);
+    setGeneratedImage(null);
 
     try {
       const ai = new GoogleGenAI({ apiKey });
@@ -651,33 +615,19 @@ const EditorPage = ({ apiKey, prompt, setPrompt }) => {
       };
       const textPart = { text: prompt };
 
-      const requestPayload = {
+      const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
         contents: { parts: [imagePart, textPart] },
         config: {
           responseModalities: [Modality.IMAGE],
         },
-      };
+      });
       
-      const promises = Array(4).fill(0).map(() => ai.models.generateContent(requestPayload));
-      const results = await Promise.allSettled(promises);
-      
-      const imageDataUrls = results
-        .filter(result => result.status === 'fulfilled')
-        .map(result => {
-            const response = result.value;
-            const part = response.candidates?.[0]?.content?.parts?.[0];
-            if (part && part.inlineData) {
-                const mimeType = part.inlineData.mimeType || 'image/png';
-                return `data:${mimeType};base64,${part.inlineData.data}`;
-            }
-            return null;
-        })
-        .filter(Boolean);
-
-      if (imageDataUrls.length > 0) {
-        setGeneratedImages(imageDataUrls);
-        setSelectedImage(imageDataUrls[0]);
+      const part = response.candidates?.[0]?.content?.parts?.[0];
+      if (part && part.inlineData) {
+        const mimeType = part.inlineData.mimeType || 'image/png';
+        const dataUrl = `data:${mimeType};base64,${part.inlineData.data}`;
+        setGeneratedImage(dataUrl);
       } else {
         setError("لم يتمكن الذكاء الاصطناعي من إنشاء صورة. حاول مرة أخرى بوصف مختلف.");
       }
@@ -739,7 +689,7 @@ const EditorPage = ({ apiKey, prompt, setPrompt }) => {
             </div>
 
             <div className="space-y-3">
-              <h2 className="text-xl font-semibold text-gray-300">النتيجة <span className="text-sm text-gray-400 font-normal">(اختر الصورة لي عجباتك)</span></h2>
+              <h2 className="text-xl font-semibold text-gray-300">النتيجة</h2>
                 {loading ? (
                    <div className="placeholder-bg">
                         <div className="loader-dots flex space-x-2">
@@ -749,31 +699,15 @@ const EditorPage = ({ apiKey, prompt, setPrompt }) => {
                         </div>
                         <p className="text-gray-400 mt-4">الذكاء الاصطناعي يقوم بالتعديل...</p>
                     </div>
-                ) : generatedImages.length > 0 ? (
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-2">
-                        {generatedImages.map((imgUrl, index) => (
-                            <img 
-                                key={index} 
-                                src={imgUrl} 
-                                alt={`Generated image ${index + 1}`} 
-                                className={`w-full h-full object-cover rounded-lg cursor-pointer border-2 transition-all duration-200 ${selectedImage === imgUrl ? 'border-indigo-500' : 'border-gray-700 hover:border-gray-500'}`}
-                                onClick={() => setSelectedImage(imgUrl)}
-                            />
-                        ))}
-                      </div>
-                      {selectedImage && (
-                        <div className="p-3 bg-gray-900/50 rounded-lg border border-gray-700 space-y-3">
-                          <h4 className="text-md font-semibold text-center text-gray-300">معاينة وتعديل</h4>
-                          <div className="relative group">
-                            <img src={selectedImage} alt="Selected" className={`w-full h-auto object-contain rounded-lg shadow-lg transition-all duration-300 max-h-64 mx-auto filter-${activeFilter}`} />
-                             <button onClick={() => downloadFilteredImage(selectedImage, activeFilter)} className="absolute bottom-2 left-2 bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" aria-label="تحميل">
-                                  <DownloadIcon className="w-6 h-6" />
-                              </button>
-                          </div>
-                          <FilterSelector activeFilter={activeFilter} onSelectFilter={setActiveFilter} />
+                ) : generatedImage ? (
+                    <div className="space-y-3">
+                        <div className="relative group">
+                            <img src={generatedImage} alt="Generated" className={`w-full h-auto object-cover rounded-lg shadow-lg border-2 border-indigo-500 transition-all duration-300 filter-${activeFilter}`} />
+                            <button onClick={() => downloadFilteredImage(generatedImage, activeFilter)} className="absolute bottom-4 left-4 bg-black/60 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" aria-label="تحميل الصورة">
+                                <DownloadIcon className="w-6 h-6" />
+                            </button>
                         </div>
-                      )}
+                        <FilterSelector activeFilter={activeFilter} onSelectFilter={setActiveFilter} />
                     </div>
                 ) : (
                   <div className="placeholder-bg">
